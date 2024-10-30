@@ -1,0 +1,23 @@
+﻿{
+  "AtProto": {
+    "LoginIdentifier": "example.bsky.social",
+    "LoginToken": "xxxx-xxxx-xxxx-xxxx"
+  },
+  "Feeds": [
+    {
+      "ServiceDid": "did:web:example.com",
+      "RKey": "followers-liked",
+      "DisplayName": "Followers Liked",
+      "Avatar": null,
+      "Description": "Posts liked by your followers"
+    },
+    {
+      "ServiceDid": "did:web:example.com",
+      "RKey": "following-liked",
+      "DisplayName": "Following Liked",
+      "Avatar": null,
+      "Description": "Posts liked by people you follow"
+    }
+  ],
+  "FeedsToDelete": [ "old-feed-rkey" ]
+}

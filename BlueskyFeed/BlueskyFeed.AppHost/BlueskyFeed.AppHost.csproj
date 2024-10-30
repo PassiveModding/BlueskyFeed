@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+    
+    <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0-rc.1.24511.1" />
+
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsAspireHost>true</IsAspireHost>
+        <UserSecretsId>28C88FDF-0045-4669-AA22-97D36A952CF7</UserSecretsId>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\BlueskyFeed.Api\BlueskyFeed.Api.csproj" />
+        <ProjectReference Include="..\BlueskyFeed.Jetstream\BlueskyFeed.Jetstream.csproj" />
+        <ProjectReference Include="..\BlueskyFeed.ServiceDefaults\BlueskyFeed.ServiceDefaults.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Aspire.Hosting.AppHost" Version="9.0.0-rc.1.24511.1" />
+        <PackageReference Include="Aspire.Hosting.Redis" Version="9.0.0-rc.1.24511.1" />
+    </ItemGroup>
+
+</Project>
