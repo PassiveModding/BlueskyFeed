@@ -29,18 +29,24 @@
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
       OTEL_SERVICE_NAME: "apiservice"
     ports:
-        - "10000:8080"
-        - "10001:8443"
+        - "18080:8080"
+        - "18443:8443"
     depends_on:
         - redis
       
   aspire-dashboard:
-    container_name: "aspire-dashboard"
     image: "mcr.microsoft.com/dotnet/aspire-dashboard:8.0"
     environment:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
-        - "18888:18888"
+        - "18801:18888"
+      
+  redis-insight:
+    image: "redislabs/redisinsight"
+    ports:
+        - "18800:5540"
+    depends_on:
+        - redis
       
   redis:
     container_name: "redis"
