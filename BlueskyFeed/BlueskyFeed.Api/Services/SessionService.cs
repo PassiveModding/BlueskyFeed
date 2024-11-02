@@ -4,7 +4,7 @@ using Microsoft.Extensions.Options;
 
 namespace BlueskyFeed.Api.Services;
 
-public class SessionService : IDisposable
+public class SessionService : IDisposable, IService
 {
     private readonly ILogger<SessionService> _logger;
     private readonly IOptions<AtProtoConfig> _config;

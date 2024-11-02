@@ -12,47 +12,6 @@ public class Entities
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
         Converters = { new CidConverter(), new AtUriConverter() }
     };
-
-    public record Key(string Collection, string Handler, string RKey)
-    {
-        // handler contains : so we use :: as separator
-        public override string ToString() => $"{Collection}::{Handler}::{RKey}";
-        public static Key Parse(string key)
-        {
-            var parts = key.Split("::");
-            return new Key(parts[0], parts[1], parts[2]);
-        }
-    }
-    
-    public record FollowKey(string IssuerDid)
-    {
-        public override string ToString() => $"follow::{IssuerDid}";
-        public static FollowKey Parse(string key)
-        {
-            var parts = key.Split("::");
-            return new FollowKey(parts[1]);
-        }
-    }
-    
-    public record FollowingKey(string IssuerDid)
-    {
-        public override string ToString() => $"following::{IssuerDid}";
-        public static FollowingKey Parse(string key)
-        {
-            var parts = key.Split("::");
-            return new FollowingKey(parts[1]);
-        }
-    }
-    
-    public record ProfileKey(string Handler)
-    {
-        public override string ToString() => $"profile::{Handler}";
-        public static ProfileKey Parse(string key)
-        {
-            var parts = key.Split("::");
-            return new ProfileKey(parts[1]);
-        }
-    }
     
     private class AtUriConverter : JsonConverter<ATUri?>
     {

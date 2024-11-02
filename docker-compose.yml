@@ -12,7 +12,7 @@
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
       OTEL_SERVICE_NAME: "jetstreamservice"
     depends_on:
-        - redis
+      - redis
 
   blueskyfeed.api:
     image: blueskyfeed.api
@@ -29,30 +29,29 @@
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
       OTEL_SERVICE_NAME: "apiservice"
     ports:
-        - "18080:8080"
-        - "18443:8443"
+      - "18080:8080"
+      - "18443:8443"
     depends_on:
-        - redis
-      
+      - redis
+  
   aspire-dashboard:
     image: "mcr.microsoft.com/dotnet/aspire-dashboard:8.0"
     environment:
       DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
     ports:
-        - "18801:18888"
-      
+      - "18801:18888"
+  
   redis-insight:
     image: "redislabs/redisinsight"
     ports:
-        - "18800:5540"
+      - "18800:5540"
     depends_on:
-        - redis
-      
+      - redis
+
   redis:
-    container_name: "redis"
     image: docker.io/library/redis:7.4
     volumes:
-      - redis-data:/data
-        
+        - redis-data:/data
+          
 volumes:
     redis-data:

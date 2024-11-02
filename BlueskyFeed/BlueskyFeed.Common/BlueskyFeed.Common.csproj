@@ -7,7 +7,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="FishyFlip" Version="2.1.0-alpha.20" />
+      <PackageReference Include="FishyFlip" Version="2.1.0-alpha.23" />
     </ItemGroup>
 
 </Project>

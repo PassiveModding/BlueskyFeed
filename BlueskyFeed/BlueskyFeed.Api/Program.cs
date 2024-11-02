@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using BlueskyFeed.Api.Generator;
 using BlueskyFeed.Api.Services;
 using BlueskyFeed.Auth;
-using FishyFlip;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
 using static BlueskyFeed.Auth.Auth;
@@ -12,6 +11,16 @@ namespace BlueskyFeed.Api;
 
 public class Program
 {
+    private static void RegisterInterfaces<T>(IServiceCollection services)
+    {
+        var feedGeneratorTypes = Assembly.GetExecutingAssembly().GetTypes()
+            .Where(x => x.IsAssignableTo(typeof(T)) && !x.IsAbstract);
+        foreach (var type in feedGeneratorTypes)
+        {
+            services.AddSingleton(type);
+        }
+    }
+    
     public static async Task Main(string[] args)
     {
         var builder = WebApplication.CreateBuilder(args);
@@ -23,15 +32,10 @@ public class Program
             .BindConfiguration(AtProtoConfig.SectionName)
             .ValidateDataAnnotations();
         
-        var feedGeneratorTypes = Assembly.GetExecutingAssembly().GetTypes()
-            .Where(x => x.IsAssignableTo(typeof(IFeedGenerator)) && !x.IsAbstract);
-        foreach (var type in feedGeneratorTypes)
-        {
-            builder.Services.AddSingleton(typeof(IFeedGenerator), type);
-        }
+        RegisterInterfaces<IFeedGenerator>(builder.Services);
+        RegisterInterfaces<IService>(builder.Services);
         
         builder.Services.AddSingleton<DidResolver>();
-        builder.Services.AddSingleton<SessionService>();
 
         var app = builder.Build();
 

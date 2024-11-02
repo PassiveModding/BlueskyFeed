@@ -24,6 +24,7 @@ public class JetStreamListener : IHostedService
     private long _lastCount;
     private DateTime _lastCheck;
     private Timer _timer;
+    private int _reconnectAttempts;
     
 
     public JetStreamListener(ILogger<JetStreamListener> logger, IConnectionMultiplexer connectionMultiplexer)
@@ -47,6 +48,7 @@ public class JetStreamListener : IHostedService
         _lastCount = 0;
         _timer = new Timer(_ =>
         {
+            CleanupSets();
             if (_count == _lastCount)
             {
                 // connection probably dropped, attempt to restore
@@ -60,12 +62,18 @@ public class JetStreamListener : IHostedService
             _lastCount = _count;
         }, null, TimeSpan.FromMinutes(1), TimeSpan.FromMinutes(1));
         
-        await _jetStream.ConnectAsync(wantedCollections: WantedCollections, token: cancellationToken);
+        await ConnectAsync(cancellationToken);
     }
-
-    private int _reconnectAttempts;
     
-    private void HandleWebSocketState(WebSocketState state, bool force = false)
+    private async Task ConnectAsync(CancellationToken cancellationToken = default)
+    {
+        if (_jetStream != null)
+        {
+            await _jetStream.ConnectAsync(wantedCollections: WantedCollections, token: cancellationToken);
+        }
+    }
+    
+    private async void HandleWebSocketState(WebSocketState state, bool force = false)
     {
         if (_reconnectAttempts > 5)
         {
@@ -76,7 +84,7 @@ public class JetStreamListener : IHostedService
         if (force)
         {
             _logger.LogWarning("Connection closed, reconnecting");
-            _jetStream?.ConnectAsync(wantedCollections: WantedCollections);
+            await ConnectAsync();
             _reconnectAttempts++;
             return;
         }
@@ -84,13 +92,13 @@ public class JetStreamListener : IHostedService
         if (state == WebSocketState.Closed)
         {
             _logger.LogWarning("Connection closed, reconnecting");
-            _jetStream?.ConnectAsync(wantedCollections: WantedCollections);
+            await ConnectAsync();
             _reconnectAttempts++;
         }
         else if (state == WebSocketState.Aborted)
         {
             _logger.LogError("Connection aborted, reconnecting");
-            _jetStream?.ConnectAsync(wantedCollections: WantedCollections);
+            await ConnectAsync();
             _reconnectAttempts++;
         }
         else if (state == WebSocketState.Open)
@@ -138,36 +146,57 @@ public class JetStreamListener : IHostedService
             return;
         }
         
-        var key = new Entities.Key(args.Record.Commit.Collection, args.Record.Did.Handler, args.Record.Commit.RKey);
-        if (args.Record.Commit.Type is ATWebSocketCommitType.Create && args.Record.Commit.Record != null)
+        var key = new Key(args.Record.Commit.Collection, args.Record.Did.Handler, args.Record.Commit.RKey);
+        if (args.Record.Commit.Operation is ATWebSocketCommitType.Create && args.Record.Commit.Record != null)
         {
-            await HandleRecord(key.ToString(), args);
+            await HandleRecord(key, args);
         }
-        else if (args.Record.Commit.Type == ATWebSocketCommitType.Update)
+        else if (args.Record.Commit.Operation == ATWebSocketCommitType.Update)
         {
             // ignore for now
         }
-        else if (args.Record.Commit.Type == ATWebSocketCommitType.Delete)
+        else if (args.Record.Commit.Operation == ATWebSocketCommitType.Delete)
         {
             await _database.KeyDeleteAsync(key.ToString());
         }
     }
 
-    private async Task HandleRecord(string key, JetStreamATWebSocketRecordEventArgs args)
+    private async Task HandleRecord(Key key, JetStreamATWebSocketRecordEventArgs args)
     {
-        var record = args.Record.Commit!.Record!;
-        if (record is Like {Subject.Uri: not null} like)
+        switch (args.Record.Commit!.Record!)
         {
-            var serialized = JsonSerializer.Serialize(like, Entities.JsonSerializerOptions);
-            await _database.StringSetAsync(key, serialized, TimeSpan.FromDays(1));
-            await _database.SortedSetAddAsync("likes", key, DateTime.UtcNow.Ticks);
-        }
-        else if (record is Post post)
-        {
-            var serialized = JsonSerializer.Serialize(post, Entities.JsonSerializerOptions);
-            await _database.StringSetAsync(key, serialized, TimeSpan.FromDays(1));
-            await _database.SortedSetAddAsync("posts", key, DateTime.UtcNow.Ticks);
+            case Like {Subject.Uri: not null, CreatedAt: not null} like:
+            {
+                var transaction = _database.CreateTransaction();
+                var keyString = key.ToString();
+                var serialized = JsonSerializer.Serialize(like, Entities.JsonSerializerOptions);
+                var setResult = transaction.StringSetAsync(keyString, serialized, TimeSpan.FromDays(1));
+                var sortedSetResult = transaction.SortedSetAddAsync(key.Collection, keyString, GetTimestamp(like.CreatedAt.Value));
+                await transaction.ExecuteAsync();
+                break;
+            }
+            case Post {CreatedAt: not null} post:
+            {
+                var transaction = _database.CreateTransaction();
+                var keyString = key.ToString();
+                var serialized = JsonSerializer.Serialize(post, Entities.JsonSerializerOptions);
+                var setResult = transaction.StringSetAsync(keyString, serialized, TimeSpan.FromDays(1));
+                var sortedSetResult = transaction.SortedSetAddAsync(key.Collection, keyString, GetTimestamp(post.CreatedAt.Value));
+                await transaction.ExecuteAsync();
+                break;
+            }
         }
     }
+    
+    private void CleanupSets()
+    {
+        foreach (var collection in WantedCollections)
+        {
+            var removed = _database.SortedSetRemoveRangeByScore(collection, double.NegativeInfinity, GetTimestamp(DateTime.UtcNow.AddDays(-1)));
+            if (removed > 0) _logger.LogInformation("Removed {Count} records from {Key}", removed, collection);
+        }
+    }
+    
+    private static long GetTimestamp(DateTime dateTime) => ((DateTimeOffset) dateTime).ToUnixTimeSeconds();
 }
 
