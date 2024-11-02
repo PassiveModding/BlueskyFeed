@@ -14,9 +14,10 @@ public class Program
     private static void RegisterInterfaces<T>(IServiceCollection services)
     {
         var feedGeneratorTypes = Assembly.GetExecutingAssembly().GetTypes()
-            .Where(x => x.IsAssignableTo(typeof(T)) && !x.IsAbstract);
+            .Where(x => x.GetInterfaces().Contains(typeof(T)) && x is {IsAbstract: false, IsInterface: false});
         foreach (var type in feedGeneratorTypes)
         {
+            services.AddSingleton(typeof(T), type);
             services.AddSingleton(type);
         }
     }
@@ -38,6 +39,15 @@ public class Program
         builder.Services.AddSingleton<DidResolver>();
 
         var app = builder.Build();
+        
+        var feeds = app.Services.GetServices<IFeedGenerator>().ToArray();
+        var logger = app.Services.GetRequiredService<ILogger<Program>>();
+        var sessionService = app.Services.GetRequiredService<SessionService>();
+        foreach (var feed in feeds)
+        {
+            var session = await sessionService.GetSessionAsync();
+            logger.LogInformation("Registered feed {Feed}", feed.GetUri(session.Did.Handler));
+        }
 
         app.UseExceptionHandler();
         app.MapGet("/ping", () => new { Message = "Pong", Timestamp = DateTimeOffset.UtcNow })
