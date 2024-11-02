@@ -17,7 +17,8 @@ public class RedisHelper : IService
         _logger = logger;
         _database = connectionMultiplexer.GetDatabase();
     }
-    
+
+   
     public async Task<(Cursor newCursor, List<(Key Key, Like Like)> parsedResults)> GetLikesByHandles(string? cursor, int limit, IEnumerable<string> handles)
     {
         var cursorValue = Cursor.FromString(cursor);
@@ -27,6 +28,7 @@ public class RedisHelper : IService
         var matchingKeys = new List<(Key Key, long score)>();
         var scanned = 0;
         var lastProcessedTimestamp = cursorTimestamp;
+        var chunkSize = 10000;
         do
         {
             var keys = await _database.SortedSetRangeByScoreWithScoresAsync(
@@ -34,6 +36,7 @@ public class RedisHelper : IService
                 start: long.MinValue,
                 stop: lastProcessedTimestamp,
                 exclude: Exclude.Stop,
+                take: chunkSize,
                 order: Order.Descending);
 
             scanned += keys.Length;
@@ -61,10 +64,16 @@ public class RedisHelper : IService
         
         if (matchingKeys.Count == 0)
         {
-            return (new Cursor(0, ""), new List<(Key Key, Like Like)>());
+            return (new Cursor(0, ""), []);
         }
         
-        var newCursor = new Cursor(lastProcessedTimestamp, cursorRKey ?? "");
+        var matching = matchingKeys
+            .OrderByDescending(x => x.score)
+            .Take(limit)
+            .ToArray();
+        
+        var lastKeyProcessed = matching.Last();
+        var newCursor = new Cursor(lastKeyProcessed.score, lastKeyProcessed.Key.RKey);
         var parsedResults = new List<(Key Key, Like Like)>();
         foreach (var key in matchingKeys)
         {
