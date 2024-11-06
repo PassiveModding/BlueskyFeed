@@ -1,7 +1,6 @@
 ﻿services:
   clickhouse-server:
     image: clickhouse/clickhouse-server:latest
-    container_name: clickhouse-server
     environment:
       - CLICKHOUSE_USER=qryn
       - CLICKHOUSE_PASSWORD=supersecretpassword
@@ -18,7 +17,6 @@
         
   qryn:
     image: qxip/qryn:latest
-    container_name: qryn
     restart: unless-stopped
     expose:
       - 3100
@@ -30,7 +28,6 @@
       - NODE_OPTIONS="--max-old-space-size=4096"
 
   otel-collector:
-    container_name: otel-collector
     image: ghcr.io/metrico/qryn-otel-collector:latest
     volumes:
       - ./otel-collector-config.yaml:/etc/otel/config.yaml
