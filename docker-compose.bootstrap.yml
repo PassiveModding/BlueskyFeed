@@ -1,9 +1,55 @@
-﻿services:  
-  grafana-otel-lgtm:    
-    image: "grafana/otel-lgtm"
+﻿services:
+  clickhouse-server:
+    image: clickhouse/clickhouse-server:latest
+    container_name: clickhouse-server
+    environment:
+      - CLICKHOUSE_USER=qryn
+      - CLICKHOUSE_PASSWORD=supersecretpassword
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    expose:
+      - 9000
+      - 8123
+    healthcheck:
+      test: ['CMD', 'wget', '--spider', '-q', '127.0.0.1:8123/ping']
+      interval: 1s
+      timeout: 1s
+      retries: 30
+        
+  qryn:
+    image: qxip/qryn:latest
+    container_name: qryn
+    restart: unless-stopped
+    expose:
+      - 3100
+    environment:
+      - CLICKHOUSE_SERVER=clickhouse-server
+      - CLICKHOUSE_AUTH=qryn:supersecretpassword
+      - CLICKHOUSE_DB=qryn
+      - CLICKHOUSE_PORT=8123
+      - NODE_OPTIONS="--max-old-space-size=4096"
+
+  otel-collector:
+    container_name: otel-collector
+    image: ghcr.io/metrico/qryn-otel-collector:latest
+    volumes:
+      - ./otel-collector-config.yaml:/etc/otel/config.yaml
+    expose:
+      - 4317
+      - 4318
+    restart: on-failure
+
+  grafana:
+    image: grafana/grafana:latest
+    volumes:
+      - ./Grafana/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./Grafana/provider:/etc/grafana/provisioning/dashboards
+      - ./Grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana-data:/var/lib/grafana
     ports:
-      - "18889:3000"
-      - "18317:4317"
+      - "18300:3000"
+    depends_on:
+      - qryn
   
   redis-insight:
     image: "redislabs/redisinsight"
@@ -21,3 +67,6 @@
 
 volumes:
     redis-data:
+      
+    clickhouse-data:
+    grafana-data:

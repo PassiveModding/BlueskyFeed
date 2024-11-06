@@ -1,0 +1,21 @@
+﻿apiVersion: 1
+
+datasources:
+  - name: qryn-prom
+    type: prometheus
+    access: proxy
+    url: http://qryn:3100
+    isDefault: true
+
+  - name: qryn-loki
+    type: loki
+    access: proxy
+    url: http://qryn:3100
+    jsonData:
+      maxLines: 1000
+
+  - name: qryn-tempo
+    type: tempo
+    access: proxy
+    url: http://qryn:3100
+    uid: tempo

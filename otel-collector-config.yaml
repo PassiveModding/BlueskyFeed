@@ -1,0 +1,50 @@
+﻿receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 10000
+    timeout: 5s
+  memory_limiter:
+    check_interval: 2s
+    limit_mib: 1800
+    spike_limit_mib: 500
+
+exporters:
+  qryn:
+    dsn: tcp://clickhouse-server:9000/qryn?username=qryn&password=supersecretpassword
+    timeout: 10s
+    sending_queue:
+      queue_size: 100
+    retry_on_failure:
+      enabled: true
+      initial_interval: 5s
+      max_interval: 30s
+      max_elapsed_time: 300s
+    logs:
+      format: raw
+extensions:
+  health_check:
+  pprof:
+  zpages:
+
+service:
+  extensions: [pprof, zpages, health_check]
+  pipelines:
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [qryn]
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [qryn]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [qryn]
