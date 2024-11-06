@@ -1,5 +1,8 @@
-﻿services:
-  blueskyfeed.jetstream:
+﻿include:
+  - docker-compose.bootstrap.yml
+
+services:  
+  blueskyfeed-jetstream:
     image: blueskyfeed.jetstream
     build:
       context: .
@@ -9,12 +12,15 @@
       OTEL_DOTNET_EXPERIMENTAL_OTLP_EMIT_EVENT_LOG_ATTRIBUTES: "true"
       OTEL_DOTNET_EXPERIMENTAL_OTLP_RETRY: "in_memory"
       ConnectionStrings__redis: "redis:6379"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
-      OTEL_SERVICE_NAME: "jetstreamservice"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-otel-lgtm:4317"
+      OTEL_SERVICE_NAME: "BlueskyFeed.Jetstream"
+    ports:
+      - "18081:8080"
+      - "18444:8443"
     depends_on:
       - redis
 
-  blueskyfeed.api:
+  blueskyfeed-api:
     image: blueskyfeed.api
     build:
       context: .
@@ -26,32 +32,13 @@
       ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
       HTTP_PORTS: "8080"
       ConnectionStrings__redis: "redis:6379"
-      OTEL_EXPORTER_OTLP_ENDPOINT: "http://aspire-dashboard:18889"
-      OTEL_SERVICE_NAME: "apiservice"
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://grafana-otel-lgtm:4317"
+      OTEL_SERVICE_NAME: "BlueskyFeed.Api"
     ports:
       - "18080:8080"
       - "18443:8443"
     depends_on:
       - redis
-  
-  aspire-dashboard:
-    image: "mcr.microsoft.com/dotnet/aspire-dashboard:8.0"
-    environment:
-      DOTNET_DASHBOARD_UNSECURED_ALLOW_ANONYMOUS: "true"
-    ports:
-      - "18801:18888"
-  
-  redis-insight:
-    image: "redislabs/redisinsight"
-    ports:
-      - "18800:5540"
-    depends_on:
-      - redis
-
-  redis:
-    image: docker.io/library/redis:7.4
-    volumes:
-        - redis-data:/data
           
 volumes:
     redis-data:

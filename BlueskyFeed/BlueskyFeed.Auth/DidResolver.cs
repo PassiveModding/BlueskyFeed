@@ -5,18 +5,18 @@ namespace BlueskyFeed.Auth;
 
 public class DidResolver(HttpClient client, string plcUrl = "https://plc.directory")
 {
-    internal async Task<string> ResolveAtprotoKey(string did)
+    internal async Task<string> ResolveAtProtoKey(string did)
     {
         if (did.StartsWith("did:key:"))
         {
             return did;
         }
 
-        var data = await ResolveAtprotoData(did);
+        var data = await ResolveAtProtoData(did);
         return data.signingKey;
     }
 
-    private async Task<(string did, string signingKey, string handle, string pds)> ResolveAtprotoData(string did)
+    private async Task<(string did, string signingKey, string handle, string pds)> ResolveAtProtoData(string did)
     {
         var didDocument = await EnsureResolve(did);
         return AtprotoData.EnsureAtpDocument(didDocument);

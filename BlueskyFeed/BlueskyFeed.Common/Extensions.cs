@@ -1,17 +1,15 @@
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using OpenTelemetry.Trace;
 
-namespace Microsoft.Extensions.Hosting;
+namespace BlueskyFeed.Common;
 
-// Adds common .NET Aspire services: service discovery, resilience, health checks, and OpenTelemetry.
-// This project should be referenced by each service project in your solution.
-// To learn more about using this project, see https://aka.ms/dotnet/aspire/service-defaults
 public static class Extensions
 {
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
@@ -19,21 +17,16 @@ public static class Extensions
         builder.ConfigureOpenTelemetry();
 
         builder.AddDefaultHealthChecks();
-
-        builder.Services.AddServiceDiscovery();
-
+        
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
             // Turn on resilience by default
             http.AddStandardResilienceHandler();
-
-            // Turn on service discovery by default
-            http.AddServiceDiscovery();
         });
 
         return builder;
     }
-
+    
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
     {
         builder.Logging.AddOpenTelemetry(logging =>
@@ -45,25 +38,24 @@ public static class Extensions
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
-                metrics.AddAspNetCoreInstrumentation()
+                metrics
                     .AddHttpClientInstrumentation()
-                    .AddRuntimeInstrumentation();
-                metrics.AddMeter("BlueskyFeed")
-                    .AddMeter("BlueskyFeed.*");
+                    .AddRuntimeInstrumentation()
+                    .AddAspNetCoreInstrumentation();
+                metrics.AddMeter("BlueskyFeed.*");
             })
             .WithTracing(tracing =>
             {
-                tracing.AddAspNetCoreInstrumentation()
-                    .AddHttpClientInstrumentation();
-                tracing.AddSource("BlueskyFeed")
-                    .AddSource("BlueskyFeed.*");
+                tracing.AddHttpClientInstrumentation()
+                    .AddRedisInstrumentation();
+                tracing.AddSource("BlueskyFeed.*");
             });
 
         builder.AddOpenTelemetryExporters();
 
         return builder;
     }
-
+    
     private static IHostApplicationBuilder AddOpenTelemetryExporters(this IHostApplicationBuilder builder)
     {
         var useOtlpExporter = !string.IsNullOrWhiteSpace(builder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"]);
@@ -75,7 +67,7 @@ public static class Extensions
 
         return builder;
     }
-
+    
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
     {
         builder.Services.AddHealthChecks()
@@ -84,7 +76,7 @@ public static class Extensions
 
         return builder;
     }
-
+    
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
         // Adding health checks endpoints to applications in non-development environments has security implications.

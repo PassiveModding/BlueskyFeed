@@ -20,6 +20,9 @@ public class FollowHelper : IService
     
     public async Task<FeedProfile[]> GetFollowers(string issuerDid, CancellationToken cancellationToken)
     {
+        using var activity = DiagnosticsConfig.Source.StartActivity()
+            .WithIssuerDid(issuerDid);
+        
         var proto = _sessionService.GetProtocol();
 
         // check redis
@@ -27,6 +30,8 @@ public class FollowHelper : IService
         if (await _database.KeyExistsAsync(followKey.ToString()))
         {
             var cachedFollowing = await _database.SetMembersAsync(followKey.ToString());
+            activity?.WithIsCached(true)
+                .WithFollowerCount(cachedFollowing.Length);
             return cachedFollowing
                 .Where(x => x.HasValue)
                 .Select(x => FollowUtil.ParseFeedProfileBlob(x!))
@@ -55,12 +60,17 @@ public class FollowHelper : IService
         var followerTasks = followers.Select(x => _database.SetAddAsync(followKey.ToString(), x.ToBlob()));
         await Task.WhenAll(followerTasks);
         await _database.KeyExpireAsync(followKey.ToString(), TimeSpan.FromHours(1));
+        activity?.WithIsCached(false)
+            .WithFollowerCount(followers.Count);
         
         return followers.ToArray();
     }
     
     public async Task<FeedProfile[]> GetFollowing(string issuerDid, CancellationToken cancellationToken)
     {
+        using var activity = DiagnosticsConfig.Source.StartActivity()
+            .WithIssuerDid(issuerDid);
+        
         var proto = _sessionService.GetProtocol();
 
         // check redis
@@ -68,6 +78,8 @@ public class FollowHelper : IService
         if (await _database.KeyExistsAsync(followingKey.ToString()))
         {
             var cachedFollowing = await _database.SetMembersAsync(followingKey.ToString());
+            activity?.WithIsCached(true)
+                .WithFollowingCount(cachedFollowing.Length);
             return cachedFollowing
                 .Where(x => x.HasValue)
                 .Select(x => FollowUtil.ParseFeedProfileBlob(x!))
@@ -96,6 +108,8 @@ public class FollowHelper : IService
         var followingTasks = following.Select(x => _database.SetAddAsync(followingKey.ToString(), x.ToBlob()));
         await Task.WhenAll(followingTasks);
         await _database.KeyExpireAsync(followingKey.ToString(), TimeSpan.FromHours(1));
+        activity?.WithIsCached(false)
+            .WithFollowingCount(following.Count);
         
         return following.ToArray();
     }

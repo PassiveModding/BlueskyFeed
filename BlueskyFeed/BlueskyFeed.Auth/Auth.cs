@@ -4,9 +4,9 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace BlueskyFeed.Auth;
 
-public class Auth
+public static class Extensions
 {
-    public static async Task<string> VerifyJwt(string jwtStr, string? audienceDid, DidResolver didResolver)
+    public static async Task<string> VerifyJwt(this DidResolver didResolver, string jwtStr, string? audienceDid)
     {
         var jwt = new JwtSecurityToken(jwtStr);
 
@@ -23,7 +23,7 @@ public class Auth
 
         // GetSigningKey
         var issuer = jwt.Issuer;
-        var signingKey = await didResolver.ResolveAtprotoKey(issuer);
+        var signingKey = await didResolver.ResolveAtProtoKey(issuer);
 
         var msg = jwt.RawHeader + "." + jwt.RawPayload;
         var msgBytes = Encoding.UTF8.GetBytes(msg);

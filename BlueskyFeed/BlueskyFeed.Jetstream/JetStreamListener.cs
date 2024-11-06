@@ -1,21 +1,18 @@
-﻿using System.Diagnostics.Metrics;
+﻿using System.Diagnostics;
 using System.Net.WebSockets;
 using System.Text.Json;
 using BlueskyFeed.Common;
 using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Models;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
 namespace BlueskyFeed.Jetstream;
 
 public class JetStreamListener : IHostedService
 {
-    private static readonly Meter Meter = new("BlueskyFeed.Jetstream");
-    private readonly ObservableCounter<long> _totalEventsCounter;
-    private static readonly string[] WantedCollections = [Constants.FeedType.Like, Constants.FeedType.Post];
+    private static readonly string[]? WantedCollections = null;//[Constants.FeedType.Like, Constants.FeedType.Post];
+    
     
     private ATJetStream? _jetStream;
     private readonly ILogger<JetStreamListener> _logger;
@@ -31,7 +28,6 @@ public class JetStreamListener : IHostedService
     {
         _logger = logger;
         _database = connectionMultiplexer.GetDatabase();
-        _totalEventsCounter = Meter.CreateObservableCounter("total_events", () => _count);
     }
     
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -133,11 +129,25 @@ public class JetStreamListener : IHostedService
     private async void HandleReceive(object? sender, JetStreamATWebSocketRecordEventArgs args)
     {
         Interlocked.Increment(ref _count);
+        DiagnosticsConfig.EventsCounter.Add(1, new TagList(
+               [
+                    new KeyValuePair<string, object?>("kind", args.Record.Kind),
+                    new KeyValuePair<string, object?>("collection", args.Record.Commit?.Collection ?? string.Empty),
+                    new KeyValuePair<string, object?>("operation", args.Record.Commit?.Operation.ToString() ?? string.Empty),
+               ]
+            ));
         await HandleReceiveAsync(args);
     }
 
     private async Task HandleReceiveAsync(JetStreamATWebSocketRecordEventArgs args)
     {
+        using var activity = DiagnosticsConfig.Source.StartActivity()
+            .WithDid(args.Record.Did?.Handler ?? string.Empty)
+            .WithRKey(args.Record.Commit?.RKey ?? string.Empty)
+            .WithCollection(args.Record.Commit?.Collection ?? string.Empty)
+            .WithOperation(args.Record.Commit?.Operation ?? ATWebSocketCommitType.Unknown)
+            .WithKind(args.Record.Kind);
+        
         if (args.Record.Did == null 
             || args.Record.Commit == null 
             || args.Record.Commit.Collection == null 
@@ -190,11 +200,20 @@ public class JetStreamListener : IHostedService
     
     private void CleanupSets()
     {
-        foreach (var collection in WantedCollections)
+        using var activity = DiagnosticsConfig.Source.StartActivity();
+        foreach (var collection in WantedCollections ?? [])
         {
-            var removed = _database.SortedSetRemoveRangeByScore(collection, double.NegativeInfinity, GetTimestamp(DateTime.UtcNow.AddDays(-1)));
-            if (removed > 0) _logger.LogInformation("Removed {Count} records from {Key}", removed, collection);
+            CleanupCollection(collection);
         }
+    }
+    
+    private void CleanupCollection(string collection)
+    {
+        using var activity = DiagnosticsConfig.Source.StartActivity()
+            .WithCollection(collection);
+        var removed = _database.SortedSetRemoveRangeByScore(collection, double.NegativeInfinity, GetTimestamp(DateTime.UtcNow.AddDays(-1)));
+        if (removed > 0) _logger.LogInformation("Removed {Count} records from {Key}", removed, collection);
+        activity?.WithRemoved(removed);
     }
     
     private static long GetTimestamp(DateTime dateTime) => ((DateTimeOffset) dateTime).ToUnixTimeSeconds();

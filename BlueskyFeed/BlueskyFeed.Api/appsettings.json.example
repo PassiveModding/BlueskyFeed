@@ -1,0 +1,20 @@
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "ConnectionStrings": {
+    "redis": "localhost:18379"
+  },
+  "AtProto": {
+    "LoginIdentifier": "myaccount.bsky.social",
+    "LoginToken": "xxxx-xxxx-xxxx-xxxx",
+    "ServiceDid": "did:web:example.com",
+    "HostName": "example.com"
+  },
+  "OTEL_SERVICE_NAME": "BlueskyFeed.Api",
+  "OTEL_EXPORTER_OTLP_ENDPOINT": "http://localhost:18317",
+  "AllowedHosts": "*"
+}

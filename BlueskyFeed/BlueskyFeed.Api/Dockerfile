@@ -8,7 +8,6 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["BlueskyFeed/BlueskyFeed.Api/BlueskyFeed.Api.csproj", "BlueskyFeed/BlueskyFeed.Api/"]
-COPY ["BlueskyFeed/BlueskyFeed.ServiceDefaults/BlueskyFeed.ServiceDefaults.csproj", "BlueskyFeed/BlueskyFeed.ServiceDefaults/"]
 COPY ["BlueskyFeed/BlueskyFeed.Auth/BlueskyFeed.Auth.csproj", "BlueskyFeed/BlueskyFeed.Auth/"]
 COPY ["BlueskyFeed/BlueskyFeed.Common/BlueskyFeed.Common.csproj", "BlueskyFeed/BlueskyFeed.Common/"]
 RUN dotnet restore "BlueskyFeed/BlueskyFeed.Api/BlueskyFeed.Api.csproj"

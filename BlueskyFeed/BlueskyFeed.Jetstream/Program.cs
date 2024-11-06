@@ -1,21 +1,22 @@
-﻿using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
+using BlueskyFeed.Common;
 
 namespace BlueskyFeed.Jetstream;
 
 public class Program
 {
-    public static void Main(string[] args)
+    public static async Task Main(string[] args)
     {
-        var host = Host.CreateApplicationBuilder(args);
+        var builder = WebApplication.CreateSlimBuilder(args);
+        builder.AddServiceDefaults();
 
-        host.AddRedisClient(connectionName: "redis");
-        host.AddServiceDefaults();
+        builder.Services.AddProblemDetails();
+        builder.AddRedisClient(connectionName: "redis");
+        builder.Services.AddHostedService<JetStreamListener>();
+        var app = builder.Build();
+
+        app.UseExceptionHandler();
+        app.MapDefaultEndpoints();
         
-        host.Services.AddHostedService<JetStreamListener>();
-        
-        var app = host.Build();
-        
-        app.Run();
+        await app.RunAsync();
     }
 }

@@ -1,12 +1,13 @@
 ﻿FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 USER $APP_UID
 WORKDIR /app
+EXPOSE 8080
+EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 COPY ["BlueskyFeed/BlueskyFeed.Jetstream/BlueskyFeed.Jetstream.csproj", "BlueskyFeed/BlueskyFeed.Jetstream/"]
-COPY ["BlueskyFeed/BlueskyFeed.ServiceDefaults/BlueskyFeed.ServiceDefaults.csproj", "BlueskyFeed/BlueskyFeed.ServiceDefaults/"]
 COPY ["BlueskyFeed/BlueskyFeed.Common/BlueskyFeed.Common.csproj", "BlueskyFeed/BlueskyFeed.Common/"]
 RUN dotnet restore "BlueskyFeed/BlueskyFeed.Jetstream/BlueskyFeed.Jetstream.csproj"
 COPY . .

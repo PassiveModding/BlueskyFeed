@@ -1,4 +1,5 @@
-﻿using System.Text.Json;
+﻿using System.Diagnostics;
+using System.Text.Json;
 using BlueskyFeed.Common;
 using FishyFlip;
 using FishyFlip.Models;
@@ -61,6 +62,9 @@ public class RedisHelper : IService
         
         _logger.LogInformation("Scanned {Scanned} keys", scanned);
         _logger.LogInformation("Found {Count} likes", matchingKeys.Count);
+        Activity.Current?
+            .WithScanned(scanned)
+            .WithMatchingKeys(matchingKeys.Count);
         
         if (matchingKeys.Count == 0)
         {

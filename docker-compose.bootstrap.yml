@@ -1,0 +1,23 @@
+﻿services:  
+  grafana-otel-lgtm:    
+    image: "grafana/otel-lgtm"
+    ports:
+      - "18889:3000"
+      - "18317:4317"
+  
+  redis-insight:
+    image: "redislabs/redisinsight"
+    ports:
+      - "18800:5540"
+    depends_on:
+      - redis
+  
+  redis:
+    image: docker.io/library/redis:7.4
+    ports:
+      - "18379:6379"
+    volumes:
+      - redis-data:/data
+
+volumes:
+    redis-data:
