@@ -3,6 +3,7 @@ using BlueskyFeed.Api.Generator;
 using BlueskyFeed.Api.Services;
 using BlueskyFeed.Auth;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.Extensions.Options;
 
 namespace BlueskyFeed.Api.Controllers;
@@ -15,12 +16,14 @@ public class FeedController : ControllerBase
     private readonly DidResolver _didResolver;
     private readonly ILogger<FeedController> _logger;
     private readonly IEnumerable<IFeedGenerator> _feedGenerators;
+    private readonly ResponseCacheService _responseCacheService;
 
     public FeedController(IOptions<AtProtoConfig> config, 
         SessionService sessionService,
         DidResolver didResolver,
         ILogger<FeedController> logger,
-        IEnumerable<IFeedGenerator> feedGenerators)
+        IEnumerable<IFeedGenerator> feedGenerators,
+        ResponseCacheService responseCacheService)
 
     {
         _config = config;
@@ -28,6 +31,7 @@ public class FeedController : ControllerBase
         _didResolver = didResolver;
         _logger = logger;
         _feedGenerators = feedGenerators;
+        _responseCacheService = responseCacheService;
     }
     
     [HttpGet("/ping")]
@@ -93,6 +97,16 @@ public class FeedController : ControllerBase
         return Ok(response);
     }
     
+    public class FeedSkeletonCacheProfile : CacheProfile
+    {
+        public FeedSkeletonCacheProfile()
+        {
+            Duration = 60;
+            VaryByQueryKeys = new[] { "feed", "cursor", "limit" };
+            
+        }
+    }
+    
     [HttpGet("/xrpc/app.bsky.feed.getFeedSkeleton")]
     public async Task<IActionResult>
         GetFeedSkeletonAsync(
@@ -134,13 +148,29 @@ public class FeedController : ControllerBase
             var validation = await _didResolver.VerifyJwt(token, _config.Value.ServiceDid);
             activity?.WithIssuerDid(validation);
             
+            var cacheKey = $"{feed}::{cursor}::{limit}::{validation}";
+            if (_responseCacheService.TryGet(cacheKey, out var cached))
+            {
+                _logger.LogInformation("Cache hit for {CacheKey}", cacheKey);
+                return Ok(cached.ToObject());
+            }
+            
             var response = await authorizedFeedGenerator.RetrieveAsync(cursor, limit, validation, CancellationToken.None);
+            _responseCacheService.Set(cacheKey, response);
             return Ok(response.ToObject());
         }
 
         if (generator is IUnauthorizedFeedGenerator unauthorizedFeedGenerator)
         {
+            var cacheKey = $"{feed}::{cursor}::{limit}";
+            if (_responseCacheService.TryGet(cacheKey, out var cached))
+            {
+                _logger.LogInformation("Cache hit for {CacheKey}", cacheKey);
+                return Ok(cached.ToObject());
+            }
+            
             var response = await unauthorizedFeedGenerator.RetrieveAsync(cursor, limit, CancellationToken.None);
+            _responseCacheService.Set(cacheKey, response);
             return Ok(response.ToObject());
         }
 
