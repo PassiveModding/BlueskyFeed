@@ -181,7 +181,7 @@ public class JetStreamListener : IHostedService
                 var keyString = key.ToString();
                 var serialized = JsonSerializer.Serialize(like, Entities.JsonSerializerOptions);
                 var setResult = transaction.StringSetAsync(keyString, serialized, TimeSpan.FromDays(1));
-                var sortedSetResult = transaction.SortedSetAddAsync(key.Collection, keyString, GetTimestamp(like.CreatedAt.Value));
+                var sortedSetResult = transaction.SortedSetAddAsync(key.Collection, keyString, GetTimestamp(DateTime.UtcNow));
                 await transaction.ExecuteAsync();
                 break;
             }
@@ -191,7 +191,7 @@ public class JetStreamListener : IHostedService
                 var keyString = key.ToString();
                 var serialized = JsonSerializer.Serialize(post, Entities.JsonSerializerOptions);
                 var setResult = transaction.StringSetAsync(keyString, serialized, TimeSpan.FromDays(1));
-                var sortedSetResult = transaction.SortedSetAddAsync(key.Collection, keyString, GetTimestamp(post.CreatedAt.Value));
+                var sortedSetResult = transaction.SortedSetAddAsync(key.Collection, keyString, GetTimestamp(DateTime.UtcNow));
                 await transaction.ExecuteAsync();
                 break;
             }
@@ -211,9 +211,36 @@ public class JetStreamListener : IHostedService
     {
         using var activity = DiagnosticsConfig.Source.StartActivity()
             .WithCollection(collection);
-        var removed = _database.SortedSetRemoveRangeByScore(collection, double.NegativeInfinity, GetTimestamp(DateTime.UtcNow.AddDays(-1)));
-        if (removed > 0) _logger.LogInformation("Removed {Count} records from {Key}", removed, collection);
-        activity?.WithRemoved(removed);
+    
+        // We want to clean up data older than 1 day ago
+        DateTime minTime = DateTime.UtcNow.AddDays(-30);
+    
+        _logger.LogInformation("Cleaning up {Key} from {Start}", collection, minTime);
+
+        long totalRemoved = 0;
+    
+        while (minTime < DateTime.UtcNow - TimeSpan.FromDays(1))
+        {
+            var removed = _database.SortedSetRemoveRangeByScore(collection, double.NegativeInfinity, GetTimestamp(minTime), Exclude.Stop);
+            totalRemoved += removed;
+            if (removed > 0)
+            {
+                _logger.LogInformation("Removed {Removed} ({Total}) keys from {Collection} at {Time}", removed, totalRemoved, collection, minTime);
+            }
+            
+            minTime = minTime.AddHours(1);
+        }
+        
+        // We also want to cleanup and data that for some reason is in the future
+        DateTime maxTime = DateTime.UtcNow.AddDays(1);
+        var futureRemoved = _database.SortedSetRemoveRangeByScore(collection, GetTimestamp(maxTime), double.PositiveInfinity, Exclude.Stop);
+        if (futureRemoved > 0)
+        {
+            _logger.LogInformation("Removed {FutureRemoved} keys from {Collection} that were in the future", futureRemoved, collection);
+            totalRemoved += futureRemoved;
+        }
+        
+        _logger.LogInformation("Removed {Total} keys from {Collection}", totalRemoved, collection);
     }
     
     private static long GetTimestamp(DateTime dateTime) => ((DateTimeOffset) dateTime).ToUnixTimeSeconds();
