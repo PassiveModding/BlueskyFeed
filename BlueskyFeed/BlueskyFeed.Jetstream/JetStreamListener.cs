@@ -201,7 +201,7 @@ public class JetStreamListener : IHostedService
     private void CleanupSets()
     {
         using var activity = DiagnosticsConfig.Source.StartActivity();
-        foreach (var collection in WantedCollections ?? [])
+        foreach (var collection in WantedCollections ?? [Constants.FeedType.Like, Constants.FeedType.Post])
         {
             CleanupCollection(collection);
         }
