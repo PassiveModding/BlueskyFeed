@@ -34,6 +34,7 @@ services:
     ports:
       - "18080:8080"
       - "18443:8443"
+      - "5275:8080"
     depends_on:
       - redis
           

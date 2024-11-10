@@ -1,4 +1,5 @@
 using BlueskyFeed.Common;
+using BlueskyFeed.Common.Db;
 
 namespace BlueskyFeed.Jetstream;
 
@@ -11,6 +12,7 @@ public class Program
 
         builder.Services.AddProblemDetails();
         builder.AddRedisClient(connectionName: "redis");
+        builder.Services.AddSingleton<FeedRepository>();
         builder.Services.AddHostedService<JetStreamListener>();
         var app = builder.Build();
 

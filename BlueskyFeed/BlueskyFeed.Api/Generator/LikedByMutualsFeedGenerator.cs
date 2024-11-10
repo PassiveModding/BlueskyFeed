@@ -1,5 +1,7 @@
 using BlueskyFeed.Api.Services;
 using BlueskyFeed.Api.Util;
+using BlueskyFeed.Common;
+using BlueskyFeed.Common.Db;
 
 namespace BlueskyFeed.Api.Generator;
 
@@ -7,15 +9,15 @@ public class LikedByMutualsFeedGenerator : IAuthorizedFeedGenerator
 {
     private readonly ILogger<LikedByMutualsFeedGenerator> _logger;
     private readonly FollowHelper _followHelper;
-    private readonly RedisHelper _redisHelper;
+    private readonly FeedRepository _feedRepository;
 
     public LikedByMutualsFeedGenerator(ILogger<LikedByMutualsFeedGenerator> logger, 
         FollowHelper followHelper,
-        RedisHelper redisHelper)
+        FeedRepository feedRepository)
     {
         _logger = logger;
         _followHelper = followHelper;
-        _redisHelper = redisHelper;
+        _feedRepository = feedRepository;
     }
     
     public string GetUri(string handler) => $"at://{handler}/app.bsky.feed.generator/mutuals-liked";
@@ -29,7 +31,7 @@ public class LikedByMutualsFeedGenerator : IAuthorizedFeedGenerator
         var followerHandles = followers.Select(x => x.Did.Handler).ToList();
         var mutualHandles = followingHandles.Intersect(followerHandles).ToList();
         var allProfiles = following.Concat(followers).DistinctBy(x => x.Did.Handler).ToArray();
-        var (newCursor, parsedResults) = await _redisHelper.GetLikesByHandles(cursor, limit, mutualHandles);
-        return LikedFeedUtil.ConstructFeedResponse(newCursor, parsedResults, allProfiles);
+        var results = await _feedRepository.GetLikesByHandlesAsync(mutualHandles, limit, cursor);
+        return LikedFeedUtil.ConstructFeedResponse(results.LastOrDefault()?.Cursor ?? Cursor.Empty, results, allProfiles);
     }
 }

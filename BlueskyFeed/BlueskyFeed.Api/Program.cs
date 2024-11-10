@@ -3,6 +3,7 @@ using BlueskyFeed.Api.Generator;
 using BlueskyFeed.Api.Services;
 using BlueskyFeed.Auth;
 using BlueskyFeed.Common;
+using BlueskyFeed.Common.Db;
 
 namespace BlueskyFeed.Api;
 
@@ -35,6 +36,7 @@ public class Program
         RegisterInterfaces<IService>(builder.Services);
         
         builder.Services.AddSingleton<DidResolver>();
+        builder.Services.AddSingleton<FeedRepository>();
 
         var app = builder.Build();
 

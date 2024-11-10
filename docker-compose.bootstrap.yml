@@ -48,17 +48,25 @@
     depends_on:
       - qryn
   
-  redis-insight:
-    image: "redislabs/redisinsight"
-    ports:
-      - "18800:5540"
-    depends_on:
-      - redis
-  
+#  redis-insight:
+#    image: "redislabs/redisinsight"
+#    ports:
+#      - "18800:5540"
+#    depends_on:
+#      - redis
+#  
+#  redis:
+#    image: docker.io/library/redis:7.4
+#    ports:
+#      - "18379:6379"
+#    volumes:
+#      - redis-data:/data
+
   redis:
-    image: docker.io/library/redis:7.4
+    image: redis/redis-stack:latest
     ports:
       - "18379:6379"
+      - "18380:8001"
     volumes:
       - redis-data:/data
 

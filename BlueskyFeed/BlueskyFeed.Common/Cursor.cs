@@ -21,4 +21,6 @@ public record Cursor(long Timestamp, string RKey)
             
         return new Cursor(timestamp, parts[1]);
     }
+    
+    public static Cursor Empty => new(0, string.Empty);
 }

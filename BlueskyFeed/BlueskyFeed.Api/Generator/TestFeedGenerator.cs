@@ -6,16 +6,13 @@ namespace BlueskyFeed.Api.Generator;
 public class TestFeedGenerator : IAuthorizedFeedGenerator
 {
     private readonly ILogger<TestFeedGenerator> _logger;
-    private readonly FollowHelper _followHelper;
-    private readonly RedisHelper _redisHelper;
+    private readonly LikedByFollowingFeedGenerator _gen;
 
     public TestFeedGenerator(ILogger<TestFeedGenerator> logger, 
-        FollowHelper followHelper,
-        RedisHelper redisHelper)
+        LikedByFollowingFeedGenerator gen)
     {
         _logger = logger;
-        _followHelper = followHelper;
-        _redisHelper = redisHelper;
+        _gen = gen;
     }
     
     public string GetUri(string handler) => $"at://{handler}/app.bsky.feed.generator/test-feed";
@@ -23,9 +20,6 @@ public class TestFeedGenerator : IAuthorizedFeedGenerator
     public async Task<FeedResponse> RetrieveAsync(string? cursor, int limit,
         string issuerDid, CancellationToken cancellationToken)
     {
-        var profiles = await _followHelper.GetFollowing(issuerDid, cancellationToken);
-        var handles = profiles.Select(x => x.Did.Handler).ToHashSet();
-        var (newCursor, parsedResults) = await _redisHelper.GetLikesByHandles(cursor, limit, handles);
-        return LikedFeedUtil.ConstructFeedResponse(newCursor, parsedResults, profiles);
+        return await _gen.RetrieveAsync(cursor, limit, issuerDid, cancellationToken);
     }
 }
