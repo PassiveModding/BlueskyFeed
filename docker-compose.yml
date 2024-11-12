@@ -16,6 +16,7 @@ services:
       OTEL_SERVICE_NAME: "BlueskyFeed.Jetstream"
     depends_on:
       - redis
+    restart: unless-stopped
 
   blueskyfeed-api:
     image: blueskyfeed.api
@@ -37,6 +38,7 @@ services:
       - "5275:8080"
     depends_on:
       - redis
+    restart: unless-stopped
           
 volumes:
     redis-data:
