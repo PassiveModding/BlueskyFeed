@@ -27,7 +27,13 @@ public class LikedByFollowersFeedGenerator : IAuthorizedFeedGenerator
     {
         var profiles = await _followHelper.GetFollowers(issuerDid, cancellationToken);
         var handles = profiles.Select(x => x.Did.Handler).ToHashSet();
-        var results = await _feedRepository.GetLikesByHandlesAsync(handles, limit, cursor);
-        return LikedFeedUtil.ConstructFeedResponse(results.LastOrDefault()?.Cursor ?? Cursor.Empty, results, profiles);
+        var results = await _feedRepository.GetLikesByHandlesAsync(handles, limit, cursor);        
+        var newCursor = results.LastOrDefault()?.Cursor ?? Cursor.Empty;
+        if (newCursor.ToString() == cursor)
+        {
+            return new FeedResponse(Cursor.Empty.ToString(), []);
+        }
+        
+        return LikedFeedUtil.ConstructFeedResponse(newCursor, results, profiles);
     }
 }

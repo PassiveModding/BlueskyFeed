@@ -32,6 +32,12 @@ public class LikedByMutualsFeedGenerator : IAuthorizedFeedGenerator
         var mutualHandles = followingHandles.Intersect(followerHandles).ToList();
         var allProfiles = following.Concat(followers).DistinctBy(x => x.Did.Handler).ToArray();
         var results = await _feedRepository.GetLikesByHandlesAsync(mutualHandles, limit, cursor);
-        return LikedFeedUtil.ConstructFeedResponse(results.LastOrDefault()?.Cursor ?? Cursor.Empty, results, allProfiles);
+        var newCursor = results.LastOrDefault()?.Cursor ?? Cursor.Empty;        
+        if (newCursor.ToString() == cursor)
+        {
+            return new FeedResponse(Cursor.Empty.ToString(), []);
+        }
+        
+        return LikedFeedUtil.ConstructFeedResponse(newCursor, results, allProfiles);
     }
 }
