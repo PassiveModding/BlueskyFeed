@@ -8,16 +8,15 @@
 
     <ItemGroup>
       <PackageReference Include="FishyFlip" Version="2.1.0-alpha.23" />
-      <PackageReference Include="Aspire.StackExchange.Redis" Version="9.0.0-rc.1.24511.1" />
       <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="8.0.10"/>
       <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0-preview.9.24507.7" />
-      <PackageReference Include="NRediSearch" Version="2.2.79" />
+      <PackageReference Include="MongoDB.Driver" Version="3.0.0" />
       <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0-rc.1" />
       <PackageReference Include="OpenTelemetry.Exporter.Prometheus.AspNetCore" Version="1.9.0-beta.2" />
+      <PackageReference Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
       <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
       <PackageReference Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
       <PackageReference Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
-      <PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.9.0-beta.1" />
       <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2"/>
     </ItemGroup>
 

@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Builder;
+﻿using BlueskyFeed.Common.Db;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -15,7 +16,9 @@ public static class Extensions
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
     {
         builder.ConfigureOpenTelemetry();
-
+        builder.Services.AddSingleton<MongoDbService>();
+        builder.Services.AddSingleton<LikeRepository>();
+        builder.Services.AddSingleton<FollowRepository>();
         builder.AddDefaultHealthChecks();
         
         builder.Services.ConfigureHttpClientDefaults(http =>
@@ -46,8 +49,7 @@ public static class Extensions
             })
             .WithTracing(tracing =>
             {
-                tracing.AddHttpClientInstrumentation()
-                    .AddRedisInstrumentation();
+                tracing.AddHttpClientInstrumentation();
                 tracing.AddSource("BlueskyFeed.*");
             });
 

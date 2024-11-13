@@ -9,15 +9,15 @@ public class LikedByMutualsFeedGenerator : IAuthorizedFeedGenerator
 {
     private readonly ILogger<LikedByMutualsFeedGenerator> _logger;
     private readonly FollowHelper _followHelper;
-    private readonly FeedRepository _feedRepository;
+    private readonly LikeRepository _likeRepository;
 
     public LikedByMutualsFeedGenerator(ILogger<LikedByMutualsFeedGenerator> logger, 
         FollowHelper followHelper,
-        FeedRepository feedRepository)
+        LikeRepository likeRepository)
     {
         _logger = logger;
         _followHelper = followHelper;
-        _feedRepository = feedRepository;
+        _likeRepository = likeRepository;
     }
     
     public string GetUri(string handler) => $"at://{handler}/app.bsky.feed.generator/mutuals-liked";
@@ -27,11 +27,11 @@ public class LikedByMutualsFeedGenerator : IAuthorizedFeedGenerator
     {
         var following = await _followHelper.GetFollowing(issuerDid, cancellationToken);
         var followers = await _followHelper.GetFollowers(issuerDid, cancellationToken);
-        var followingHandles = following.Select(x => x.Did.Handler).ToList();
-        var followerHandles = followers.Select(x => x.Did.Handler).ToList();
+        var followingHandles = following.Select(x => x.Did).ToList();
+        var followerHandles = followers.Select(x => x.Did).ToList();
         var mutualHandles = followingHandles.Intersect(followerHandles).ToList();
-        var allProfiles = following.Concat(followers).DistinctBy(x => x.Did.Handler).ToArray();
-        var results = await _feedRepository.GetLikesByHandlesAsync(mutualHandles, limit, cursor);
+        var allProfiles = following.Concat(followers).DistinctBy(x => x.Did).ToArray();
+        var results = await _likeRepository.GetLikesByHandlesAsync(mutualHandles, limit, cursor);
         var newCursor = results.LastOrDefault()?.Cursor ?? Cursor.Empty;        
         if (newCursor.ToString() == cursor)
         {

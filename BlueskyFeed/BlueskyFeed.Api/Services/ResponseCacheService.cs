@@ -16,6 +16,8 @@ public class ResponseCacheService : IService, IDisposable
     
     public bool TryGet(string key, [MaybeNullWhen(false)] out FeedResponse response)
     {
+        response = null;
+        return false;
         if (_feedCache.TryGetValue(key, out var value))
         {
             response = value.Response;

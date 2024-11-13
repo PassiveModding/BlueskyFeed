@@ -11,8 +11,7 @@ public class Program
         builder.AddServiceDefaults();
 
         builder.Services.AddProblemDetails();
-        builder.AddRedisClient(connectionName: "redis");
-        builder.Services.AddSingleton<FeedRepository>();
+        builder.Services.AddSingleton<LikeRepository>();
         builder.Services.AddHostedService<JetStreamListener>();
         var app = builder.Build();
 

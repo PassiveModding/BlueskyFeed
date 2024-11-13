@@ -48,15 +48,24 @@
     depends_on:
       - qryn
 
-  redis:
-    image: redis/redis-stack:latest
+#  redis:
+#    image: redis/redis-stack:latest
+#    ports:
+#      - "18379:6379"
+#      - "18380:8001"
+#    volumes:
+#      - redis-data:/data
+  
+  mongo:
+    image: mongo:latest
     ports:
-      - "18379:6379"
-      - "18380:8001"
+      - "18370:27017"
     volumes:
-      - redis-data:/data
+      - mongo-data:/data/db
+    restart: unless-stopped
 
 volumes:
-    redis-data:      
+    # redis-data:   
+    mongo-data:
     clickhouse-data:
     grafana-data:

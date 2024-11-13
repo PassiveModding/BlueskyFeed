@@ -1,7 +1,5 @@
-﻿using BlueskyFeed.Api.Util;
-using BlueskyFeed.Common;
+﻿using BlueskyFeed.Common.Db;
 using FishyFlip.Models;
-using StackExchange.Redis;
 
 namespace BlueskyFeed.Api.Services;
 
@@ -9,35 +7,28 @@ public class FollowHelper : IService
 {
     private readonly SessionService _sessionService;
     private readonly ILogger<FollowHelper> _logger;
-    private readonly IDatabase _database;
+    private readonly FollowRepository _followRepository;
 
-    public FollowHelper(SessionService sessionService, IConnectionMultiplexer connectionMultiplexer, ILogger<FollowHelper> logger)
+    public FollowHelper(SessionService sessionService, ILogger<FollowHelper> logger, FollowRepository followRepository)
     {
         _sessionService = sessionService;
         _logger = logger;
-        _database = connectionMultiplexer.GetDatabase();
+        _followRepository = followRepository;
     }
     
-    public async Task<FeedProfile[]> GetFollowers(string issuerDid, CancellationToken cancellationToken)
+    public async Task<FeedProfileRecord[]> GetFollowers(string issuerDid, CancellationToken cancellationToken)
     {
         using var activity = DiagnosticsConfig.Source.StartActivity()
             .WithIssuerDid(issuerDid);
         
-        var proto = _sessionService.GetProtocol();
-
-        // check redis
-        var followKey = new FollowKey(issuerDid);
-        if (await _database.KeyExistsAsync(followKey.ToString()))
+        var cachedFollowers = await _followRepository.GetFollowersAsync(issuerDid);
+        if (cachedFollowers != null)
         {
-            var cachedFollowing = await _database.SetMembersAsync(followKey.ToString());
-            activity?.WithIsCached(true)
-                .WithFollowerCount(cachedFollowing.Length);
-            return cachedFollowing
-                .Where(x => x.HasValue)
-                .Select(x => FollowUtil.ParseFeedProfileBlob(x!))
-                .ToArray();
+            _logger.LogInformation("Using cached following for {Did}", issuerDid);
+            return cachedFollowers;
         }
         
+        var proto = _sessionService.GetProtocol();
         var identifier = ATIdentifier.Create(issuerDid);
         if (identifier == null)
         {
@@ -55,37 +46,24 @@ public class FollowHelper : IService
             followers.AddRange(followerSet);
             followCursor = followRecord.Cursor;
         } while (followCursor != null);
-        
-        // insert followers
-        var followerTasks = followers.Select(x => _database.SetAddAsync(followKey.ToString(), x.ToBlob()));
-        await Task.WhenAll(followerTasks);
-        await _database.KeyExpireAsync(followKey.ToString(), TimeSpan.FromHours(1));
-        activity?.WithIsCached(false)
-            .WithFollowerCount(followers.Count);
-        
-        return followers.ToArray();
+
+        await _followRepository.SetFollowersAsync(issuerDid, followers.ToArray());
+        return followers.Select(x => new FeedProfileRecord(x.Did.Handler, x.DisplayName, x.Handle)).ToArray();
     }
     
-    public async Task<FeedProfile[]> GetFollowing(string issuerDid, CancellationToken cancellationToken)
+    public async Task<FeedProfileRecord[]> GetFollowing(string issuerDid, CancellationToken cancellationToken)
     {
         using var activity = DiagnosticsConfig.Source.StartActivity()
             .WithIssuerDid(issuerDid);
         
-        var proto = _sessionService.GetProtocol();
-
-        // check redis
-        var followingKey = new FollowingKey(issuerDid);
-        if (await _database.KeyExistsAsync(followingKey.ToString()))
+        var cachedFollowing = await _followRepository.GetFollowingAsync(issuerDid);
+        if (cachedFollowing != null)
         {
-            var cachedFollowing = await _database.SetMembersAsync(followingKey.ToString());
-            activity?.WithIsCached(true)
-                .WithFollowingCount(cachedFollowing.Length);
-            return cachedFollowing
-                .Where(x => x.HasValue)
-                .Select(x => FollowUtil.ParseFeedProfileBlob(x!))
-                .ToArray();
+            _logger.LogInformation("Using cached following for {Did}", issuerDid);
+            return cachedFollowing;
         }
         
+        var proto = _sessionService.GetProtocol();
         var identifier = ATIdentifier.Create(issuerDid);
         if (identifier == null)
         {
@@ -103,14 +81,8 @@ public class FollowHelper : IService
             following.AddRange(followings);
             followingCursor = followRecord.Cursor;
         } while (followingCursor != null);
-        
-        // insert following
-        var followingTasks = following.Select(x => _database.SetAddAsync(followingKey.ToString(), x.ToBlob()));
-        await Task.WhenAll(followingTasks);
-        await _database.KeyExpireAsync(followingKey.ToString(), TimeSpan.FromHours(1));
-        activity?.WithIsCached(false)
-            .WithFollowingCount(following.Count);
-        
-        return following.ToArray();
+
+        await _followRepository.SetFollowingAsync(issuerDid, following.ToArray());
+        return following.Select(x => new FeedProfileRecord(x.Did.Handler, x.DisplayName, x.Handle)).ToArray();
     }
 }

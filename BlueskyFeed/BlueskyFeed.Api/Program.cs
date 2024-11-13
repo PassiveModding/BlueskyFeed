@@ -27,7 +27,6 @@ public class Program
 
         builder.Services.AddProblemDetails();
         builder.Services.AddControllers();
-        builder.AddRedisClient(connectionName: "redis");
         builder.Services.AddOptions<AtProtoConfig>()
             .BindConfiguration(AtProtoConfig.SectionName)
             .ValidateDataAnnotations();
@@ -36,7 +35,7 @@ public class Program
         RegisterInterfaces<IService>(builder.Services);
         
         builder.Services.AddSingleton<DidResolver>();
-        builder.Services.AddSingleton<FeedRepository>();
+        builder.Services.AddSingleton<LikeRepository>();
 
         var app = builder.Build();
 

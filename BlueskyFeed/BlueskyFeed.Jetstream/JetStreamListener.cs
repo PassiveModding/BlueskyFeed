@@ -1,12 +1,10 @@
 ﻿using System.Diagnostics;
 using System.Net.WebSockets;
-using System.Text.Json;
 using BlueskyFeed.Common;
 using BlueskyFeed.Common.Db;
 using FishyFlip;
 using FishyFlip.Events;
 using FishyFlip.Models;
-using StackExchange.Redis;
 
 namespace BlueskyFeed.Jetstream;
 
@@ -17,7 +15,7 @@ public class JetStreamListener : IHostedService
     
     private ATJetStream? _jetStream;
     private readonly ILogger<JetStreamListener> _logger;
-    private readonly FeedRepository _feedRepository;
+    private readonly LikeRepository _likeRepository;
     private long _count;
     private long _lastCount;
     private DateTime _lastCheck;
@@ -26,10 +24,10 @@ public class JetStreamListener : IHostedService
     
 
     public JetStreamListener(ILogger<JetStreamListener> logger,
-        FeedRepository feedRepository)
+        LikeRepository likeRepository)
     {
         _logger = logger;
-        _feedRepository = feedRepository;
+        _likeRepository = likeRepository;
     }
     
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -175,7 +173,7 @@ public class JetStreamListener : IHostedService
         }
         else if (args.Record.Commit.Operation == ATWebSocketCommitType.Delete)
         {
-            await _feedRepository.RemoveLikeAsync(args.Record.Did.Handler, args.Record.Commit.RKey);
+            await _likeRepository.RemoveLikeAsync(args.Record.Did.Handler, args.Record.Commit.RKey);
         }
     }
 
@@ -185,7 +183,7 @@ public class JetStreamListener : IHostedService
         {
             case Like {Subject.Uri: not null, CreatedAt: not null} like:
             {
-                await _feedRepository.AddLikeAsync(key.Handler, key.RKey, like);
+                await _likeRepository.AddLikeAsync(key.Handler, key.RKey, like);
                 break;
             }
             // case Post {CreatedAt: not null} post:

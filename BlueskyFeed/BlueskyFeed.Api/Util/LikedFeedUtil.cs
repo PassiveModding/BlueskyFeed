@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using BlueskyFeed.Common;
+using BlueskyFeed.Common.Db;
 using FishyFlip.Models;
 using LikeRecord = BlueskyFeed.Common.Db.LikeRecord;
 
@@ -7,13 +8,13 @@ namespace BlueskyFeed.Api.Util;
 
 public static class LikedFeedUtil
 {
-    public static FeedResponse ConstructFeedResponse(Cursor newCursor, IEnumerable<LikeRecord> parsedResults, FeedProfile[] profiles)
+    public static FeedResponse ConstructFeedResponse(Cursor newCursor, IEnumerable<LikeRecord> parsedResults, FeedProfileRecord[] profiles)
     {
         var likedBuilder = new StringBuilder();
         return new FeedResponse(newCursor.ToString(), parsedResults
             .Select(x =>
             {
-                var liked = profiles.Where(p => p.Did.Handler == x.GetDid()).ToArray();
+                var liked = profiles.Where(p => p.Did == x.Handler).ToArray();
                 likedBuilder.Clear();
                 likedBuilder.Append("Liked by ");
                 for (int i = 0; i < liked.Length; i++)
