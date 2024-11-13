@@ -75,7 +75,7 @@ public partial class LikeRepository
         {
             var cursorParts = Cursor.FromString(cursor);
             var dateTimeTimestamp = DateTimeOffset.FromUnixTimeMilliseconds(cursorParts!.Timestamp).UtcDateTime;
-            var cursorFilter = Builders<LikeRecord>.Filter.Gt(x => x.IndexedAt, dateTimeTimestamp);
+            var cursorFilter = Builders<LikeRecord>.Filter.Lt(x => x.IndexedAt, dateTimeTimestamp);
             filter &= cursorFilter;
         }
         
