@@ -7,3 +7,5 @@ riderModule.iml
 .idea/
 appsettings.json
 appsettings.*.json
+
+*.override.yml
