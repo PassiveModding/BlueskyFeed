@@ -14,6 +14,9 @@ services:
       ConnectionStrings__mongo: "mongodb://mongo:27017"
       OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
       OTEL_SERVICE_NAME: "BlueskyFeed.Jetstream"
+    depends_on:
+      mongo:
+        condition: service_healthy
     restart: unless-stopped
 
   blueskyfeed-api:
@@ -34,4 +37,7 @@ services:
       - "18080:8080"
       - "18443:8443"
       - "5275:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
     restart: unless-stopped
