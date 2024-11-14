@@ -20,10 +20,9 @@ public class FollowRepository
         try
         {
             var collection = _mongoDb.GetDatabase().GetCollection<FollowRecord>(CollectionFollowers);
-            var index = Builders<FollowRecord>.IndexKeys.Ascending(x => x.Did);
+            var index = Builders<FollowRecord>.IndexKeys.Ascending(x => x.Created);
             var options = new CreateIndexOptions
             {
-                Unique = true,
                 ExpireAfter = TimeSpan.FromHours(1)
             };
             var model = new CreateIndexModel<FollowRecord>(index, options);
@@ -31,16 +30,15 @@ public class FollowRepository
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to create unique index on followers collection");
+            _logger.LogError(e, "Failed to create TTL index on followers collection");
         }
         
         try
         {
             var collection = _mongoDb.GetDatabase().GetCollection<FollowRecord>(CollectionFollowing);
-            var index = Builders<FollowRecord>.IndexKeys.Ascending(x => x.Did);
+            var index = Builders<FollowRecord>.IndexKeys.Ascending(x => x.Created);
             var options = new CreateIndexOptions
             {
-                Unique = true,
                 ExpireAfter = TimeSpan.FromHours(1)
             };
             var model = new CreateIndexModel<FollowRecord>(index, options);
@@ -48,7 +46,7 @@ public class FollowRepository
         }
         catch (Exception e)
         {
-            _logger.LogError(e, "Failed to create unique index on following collection");
+            _logger.LogError(e, "Failed to create TTL index on following collection");
         }
     }
     
@@ -99,6 +97,9 @@ public class FollowRecord
     
     [BsonElement("followers")]
     public FeedProfileRecord[] Followers { get; init; }
+    
+    [BsonElement("created")]
+    public DateTime Created { get; init; } = DateTime.UtcNow;
 }
 
 public record FeedProfileRecord(string Did, string DisplayName, string Handle);
